@@ -12,14 +12,34 @@ START TRANSACTION;
 SET time_zone = "+00:00";
 
 
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 /*!40101 SET NAMES utf8mb4 */;
 
 --
 -- Base de données : `formation`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `formations`
+--
+
+CREATE TABLE `formations` (
+  `id_form` int(11) NOT NULL,
+  `titre_form` varchar(255) NOT NULL,
+  `description` text,
+  `statut_form` enum('Active','Inactive','Brouillon') DEFAULT 'Active',
+  `duree_form` varchar(20) DEFAULT NULL,
+  `frais_form` decimal(10,2) DEFAULT NULL,
+  `date_form` date DEFAULT NULL,
+  `id_categ` int(11) NOT NULL,
+  `image_couverture` varchar(255) DEFAULT NULL,
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -58,16 +78,24 @@ CREATE TABLE `chapitres` (
   `duree` varchar(10) NOT NULL,
   `ordre` int(11) NOT NULL,
   `type` varchar(255) NOT NULL,
-  `id_categ` int(11) NOT NULL
+  `id_form` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
+
 --
--- Déchargement des données de la table `chapitres`
+-- Structure de la table `ressources`
 --
 
-INSERT INTO `chapitres` (`id_chap`, `titre_chap`, `duree`, `ordre`, `type`, `id_categ`) VALUES
-(1, 'react', '35h', 1, 'Publié', 6),
-(2, 'react native', '40h', 2, 'Publié', 2);
+CREATE TABLE `ressources` (
+  `id_res` int(11) NOT NULL,
+  `type` enum('pdf','video') NOT NULL,
+  `url` varchar(255) NOT NULL,
+  `nom_fichier` varchar(255) DEFAULT NULL,
+  `taille_fichier` bigint(20) DEFAULT NULL,
+  `id_chap` int(11) NOT NULL,
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -155,6 +183,13 @@ INSERT INTO `utilisateurs` (`id`, `nom`, `prenom`, `email`, `mdp`, `role`, `spec
 --
 
 --
+-- Index pour la table `formations`
+--
+ALTER TABLE `formations`
+  ADD PRIMARY KEY (`id_form`),
+  ADD KEY `fk_formation_categorie` (`id_categ`);
+
+--
 -- Index pour la table `categories`
 --
 ALTER TABLE `categories`
@@ -165,7 +200,14 @@ ALTER TABLE `categories`
 --
 ALTER TABLE `chapitres`
   ADD PRIMARY KEY (`id_chap`),
-  ADD KEY `fk_chapitre_categorie` (`id_categ`);
+  ADD KEY `fk_chapitre_formation` (`id_form`);
+
+--
+-- Index pour la table `ressources`
+--
+ALTER TABLE `ressources`
+  ADD PRIMARY KEY (`id_res`),
+  ADD KEY `fk_ressource_chapitre` (`id_chap`);
 
 --
 -- Index pour la table `qcm`
@@ -203,6 +245,12 @@ ALTER TABLE `utilisateurs`
 --
 
 --
+-- AUTO_INCREMENT pour la table `formations`
+--
+ALTER TABLE `formations`
+  MODIFY `id_form` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT pour la table `categories`
 --
 ALTER TABLE `categories`
@@ -212,7 +260,13 @@ ALTER TABLE `categories`
 -- AUTO_INCREMENT pour la table `chapitres`
 --
 ALTER TABLE `chapitres`
-  MODIFY `id_chap` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id_chap` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT pour la table `ressources`
+--
+ALTER TABLE `ressources`
+  MODIFY `id_res` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT pour la table `qcm`
@@ -249,12 +303,25 @@ ALTER TABLE `utilisateurs`
 --
 
 --
+-- Contraintes pour la table `formations`
+--
+ALTER TABLE `formations`
+  ADD CONSTRAINT `fk_formation_categorie` FOREIGN KEY (`id_categ`) REFERENCES `categories` (`id_categ`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
 -- Contraintes pour la table `chapitres`
 --
 ALTER TABLE `chapitres`
-  ADD CONSTRAINT `fk_chapitre_categorie` FOREIGN KEY (`id_categ`) REFERENCES `categories` (`id_categ`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_chapitre_formation` FOREIGN KEY (`id_form`) REFERENCES `formations` (`id_form`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `ressources`
+--
+ALTER TABLE `ressources`
+  ADD CONSTRAINT `fk_ressource_chapitre` FOREIGN KEY (`id_chap`) REFERENCES `chapitres` (`id_chap`) ON DELETE CASCADE ON UPDATE CASCADE;
+
 COMMIT;
 
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40101 CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 CHARACTER_SET_COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

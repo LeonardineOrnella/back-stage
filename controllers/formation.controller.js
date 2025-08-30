@@ -1,5 +1,7 @@
 const Formation = require('../models/formation.model');
 const db = require('../config/db');
+const fs = require('fs');
+const path = require('path');
 
 exports.getAllFormation = (req, res) => {
     Formation.getAll((err, results) => {
@@ -18,7 +20,7 @@ exports.getByIdFormation = (req, res) => {
 
 exports.createFormation = (req, res) => {
     const body = req.body || {};
-    const files = req.files || [];
+    const files = req.files || {};
     
     // Parser le JSON de formation
     let formationData = {};
@@ -41,14 +43,24 @@ exports.createFormation = (req, res) => {
         return res.status(400).json({ error: 'Format JSON invalide dans le champ formation' });
     }
     
+    // Gérer l'image de couverture
+    if (files.image_couverture && files.image_couverture.length > 0) {
+        const imageFile = files.image_couverture[0];
+        const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(imageFile.originalname);
+        const filename = uniqueName + ext;
+        const filepath = path.join('uploads', 'couvertures', filename);
+        
+        // Sauvegarder l'image
+        fs.writeFileSync(filepath, imageFile.buffer);
+        formationData.image_couverture = `/uploads/couvertures/${filename}`;
+    }
+    
     // Debug: afficher ce qui est reçu
     console.log('Formation Data:', formationData);
     console.log('Chapitres:', chapitres);
     console.log('Files:', files);
-    console.log('Files length:', files.length);
-    console.log('Body keys:', Object.keys(body));
-    console.log('Files details:', files.map(f => ({ filename: f.filename, originalname: f.originalname, mimetype: f.mimetype })));
-    console.log('Chapitres avec ressources:', JSON.stringify(chapitres, null, 2));
+    console.log('Image de couverture:', formationData.image_couverture);
 
     db.beginTransaction((txErr) => {
         if (txErr) return res.status(500).json({ error: txErr.message || 'Erreur transaction' });
@@ -113,13 +125,26 @@ exports.createFormation = (req, res) => {
                         };
                         
                         // Si c'est un fichier uploadé (pas une URL)
-                        if (ressource.fileIndex !== undefined && files[ressource.fileIndex]) {
-                            ressourceData.url = `/uploads/ressources/${files[ressource.fileIndex].filename}`;
+                        if (ressource.fileIndex !== undefined && files.ressources && files.ressources[ressource.fileIndex]) {
+                            const ressourceFile = files.ressources[ressource.fileIndex];
+                            const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1E9);
+                            const ext = path.extname(ressourceFile.originalname);
+                            const filename = uniqueName + ext;
+                            const filepath = path.join('uploads', 'ressources', filename);
+                            
+                            // Sauvegarder le fichier
+                            fs.writeFileSync(filepath, ressourceFile.buffer);
+                            
+                            ressourceData.url = `/uploads/ressources/${filename}`;
+                            ressourceData.nom_fichier = ressourceFile.originalname;
+                            ressourceData.taille_fichier = ressourceFile.size;
                         } else {
                             ressourceData.url = ressource.url || null;
+                            ressourceData.nom_fichier = ressource.nom_fichier || null;
+                            ressourceData.taille_fichier = ressource.taille_fichier || null;
                         }
 
-                        db.query('INSERT INTO formation.RESSOURCE SET ?', ressourceData, (rErr, rResult) => {
+                        db.query('INSERT INTO formation.ressources SET ?', ressourceData, (rErr, rResult) => {
                             if (rErr) {
                                 return db.rollback(() => res.status(500).json({ error: rErr.message || 'Erreur création ressource' }));
                             }
