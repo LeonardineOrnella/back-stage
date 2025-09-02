@@ -2,7 +2,7 @@ const Categorie =  require ('../models/categ.model');
 
 exports.getAllCategorie = (req, res) => {
     Categorie.getAll((err, results) => {
-        if (err) throw erreur;
+        if (err) throw err;
         res.json(results);
       });
  
